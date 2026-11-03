@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ferekan</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --g:#0B6E4F; --o:#F2A33A; --ink:#14181F; --muted:#5B6270; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:#F4F5F7; }
+  main { max-width: 480px; margin: 0 auto; min-height: 100vh; background:#fff; display:flex; flex-direction:column; }
+  header { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid #E4E6EA; }
+  header svg { width:32px; height:32px; }
+  header strong { font-size:20px; color:var(--g); }
+  .photo { width:100%; aspect-ratio: 1/1; object-fit:cover; background:#FDE7C8; display:block; }
+  .body { padding:20px 18px; display:flex; flex-direction:column; gap:8px; }
+  h1 { margin:0; font-size:24px; }
+  .price { font-size:24px; font-weight:800; color:var(--g); }
+  .shop { color:var(--muted); font-size:15px; }
+  .actions { padding:18px; display:flex; flex-direction:column; gap:10px; margin-top:auto; }
+  a.btn { display:flex; align-items:center; justify-content:center; height:54px; border-radius:14px; font-weight:700; font-size:16px; text-decoration:none; }
+  a.primary { background:var(--g); color:#fff; }
+  a.secondary { border:1.5px solid var(--g); color:var(--g); }
+  p.note { margin:0; text-align:center; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <path d="M44 38V30a16 16 0 0 1 32 0v8" fill="none" stroke="#0B6E4F" stroke-width="7" stroke-linecap="round"/>
+      <rect x="18" y="36" width="84" height="62" rx="16" fill="#0B6E4F"/>
+      <path d="M28 94 20 112 46 97Z" fill="#0B6E4F"/>
+      <rect x="39" y="59" width="7" height="16" rx="3.5" fill="#F2A33A"/>
+      <rect x="51" y="51" width="7" height="32" rx="3.5" fill="#F2A33A"/>
+      <rect x="63" y="55" width="7" height="24" rx="3.5" fill="#F2A33A"/>
+      <rect x="75" y="61" width="7" height="12" rx="3.5" fill="#F2A33A"/>
+    </svg>
+    <strong>Ferekan</strong>
+  </header>
+  <img class="photo" id="photo" alt="">
+  <div class="body">
+    <h1 id="title">Produit</h1>
+    <div class="price" id="price"></div>
+    <div class="shop" id="shop"></div>
+  </div>
+  <div class="actions">
+    <a class="btn primary" id="open">Discuter avec le vendeur sur Ferekan</a>
+    <a class="btn secondary" id="download">Télécharger l’application</a>
+    <p class="note">Achetez et discutez avec les commerçants, même en vocal.</p>
+  </div>
+</main>
+<script>
+  // Lien de téléchargement de l'application (à remplacer par le lien Play Store au lancement)
+  var DOWNLOAD_URL = 'https://github.com/traoreaboubacar622-png/ferekan-site/releases/latest';
+
+  var q = new URLSearchParams(location.search);
+  var title = q.get('t') || 'Produit Ferekan';
+  var price = parseInt(q.get('p') || '', 10);
+  var shopName = q.get('n') || '';
+  var img = q.get('i') || '';
+  var shopId = (q.get('shop') || '').replace(/[^a-zA-Z0-9-]/g, '');
+  var productId = (q.get('product') || '').replace(/[^a-zA-Z0-9-]/g, '');
+
+  // textContent : aucun HTML injecté depuis l'adresse
+  document.getElementById('title').textContent = title;
+  document.title = title + ' · Ferekan';
+  if (!isNaN(price)) document.getElementById('price').textContent = price.toLocaleString('fr-FR') + ' FCFA';
+  if (shopName) document.getElementById('shop').textContent = 'Vendu par ' + shopName;
+  var photo = document.getElementById('photo');
+  if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.style.display = 'none'; }
+
+  var deepLink = productId ? 'ferekan://product/' + productId : (shopId ? 'ferekan://shop/' + shopId : 'ferekan://');
+  document.getElementById('open').href = deepLink;
+  document.getElementById('download').href = DOWNLOAD_URL;
+</script>
+</body>
+</html>
