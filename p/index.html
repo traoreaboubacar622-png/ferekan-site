@@ -71,9 +71,26 @@
   var photo = document.getElementById('photo');
   if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.style.display = 'none'; }
 
+  // Lien de boutique (sans produit) : textes adaptés
+  if (!productId && shopId) {
+    document.getElementById('shop').textContent = 'Boutique sur Ferekan';
+    document.getElementById('open').textContent = 'Voir la boutique sur Ferekan';
+  }
+
   var deepLink = productId ? 'ferekan://product/' + productId : (shopId ? 'ferekan://shop/' + shopId : 'ferekan://');
   document.getElementById('open').href = deepLink;
   document.getElementById('download').href = DOWNLOAD_URL;
+
+  // iPhone / iPad : pas d'application Android, on ouvre la version web de Ferekan
+  var ua = navigator.userAgent;
+  var isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  var webLink = '../app/' + (productId ? 'product/' + productId : (shopId ? 'shop/' + shopId : ''));
+  if (isIos) {
+    document.getElementById('open').href = webLink;
+    var dl = document.getElementById('download');
+    dl.href = '../app/';
+    dl.textContent = 'Installer Ferekan sur iPhone';
+  }
 </script>
 </body>
 </html>

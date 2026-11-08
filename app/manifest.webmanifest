@@ -1,0 +1,30 @@
+{
+  "name": "Ferekan",
+  "short_name": "Ferekan",
+  "description": "Achète, vends et discute avec les commerçants du Mali.",
+  "lang": "fr",
+  "start_url": "/ferekan-site/app/",
+  "scope": "/ferekan-site/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0B6E4F",
+  "icons": [
+    {
+      "src": "/ferekan-site/app/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/ferekan-site/app/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/ferekan-site/app/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
