@@ -2,6 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon-192.png">
+<meta name="apple-mobile-web-app-title" content="Ferekan">
+<meta name="theme-color" content="#0B6E4F">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ferekan</title>
 <meta name="robots" content="noindex">
@@ -68,22 +72,31 @@
   var img = q.get('i') || '';
   var shopId = (q.get('shop') || '').replace(/[^a-zA-Z0-9-]/g, '');
   var productId = (q.get('product') || '').replace(/[^a-zA-Z0-9-]/g, '');
+  // Service (coiffure, couture…) : prix « à partir de » ou « sur devis », bouton « Réserver »
+  var serviceId = (q.get('service') || '').replace(/[^a-zA-Z0-9-]/g, '');
 
   // textContent : aucun HTML injecté depuis l'adresse
   document.getElementById('title').textContent = title;
   document.title = title + ' · Ferekan';
-  if (!isNaN(price)) document.getElementById('price').textContent = price.toLocaleString('fr-FR') + ' FCFA';
-  if (shopName) document.getElementById('shop').textContent = 'Vendu par ' + shopName;
+  if (serviceId) {
+    document.getElementById('price').textContent = !isNaN(price) ? 'À partir de ' + price.toLocaleString('fr-FR') + ' FCFA' : 'Prix sur devis';
+    if (shopName) document.getElementById('shop').textContent = 'Proposé par ' + shopName;
+    document.getElementById('open').textContent = 'Réserver sur Ferekan';
+    document.querySelectorAll('.note')[1].textContent = 'Demandez un rendez-vous ou un prix et discutez avec le prestataire, même en vocal.';
+  } else {
+    if (!isNaN(price)) document.getElementById('price').textContent = price.toLocaleString('fr-FR') + ' FCFA';
+    if (shopName) document.getElementById('shop').textContent = 'Vendu par ' + shopName;
+  }
   var photo = document.getElementById('photo');
   if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.style.display = 'none'; }
 
   // Lien de boutique (sans produit) : textes adaptés
-  if (!productId && shopId) {
+  if (!productId && !serviceId && shopId) {
     document.getElementById('shop').textContent = 'Boutique sur Ferekan';
     document.getElementById('open').textContent = 'Voir la boutique sur Ferekan';
   }
 
-  var path = productId ? 'product/' + productId : (shopId ? 'shop/' + shopId : '');
+  var path = serviceId ? 'service/' + serviceId : productId ? 'product/' + productId : (shopId ? 'shop/' + shopId : '');
   var deepLink = 'ferekan://' + path;
   // Version web de Ferekan (même produit), en adresse complète
   var webLink = new URL('../app/' + path, location.href).href;
