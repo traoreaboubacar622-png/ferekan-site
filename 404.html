@@ -8,6 +8,11 @@
   // Lien direct ou rechargement d'une page de l'app (ex. /app/seller/videos) :
   // GitHub Pages ne connaît pas ces adresses -> on rouvre l'app et on y retourne.
   (function () {
+    // Ancienne adresse github.io -> adresse officielle ferekan.com (même page)
+    if (/github\.io$/.test(location.hostname)) {
+      location.replace('https://ferekan.com' + location.pathname.replace(/^\/ferekan-site/, '') + location.search + location.hash);
+      return;
+    }
     var p = location.pathname;
     var i = p.indexOf('/app/');
     if (i >= 0) {
