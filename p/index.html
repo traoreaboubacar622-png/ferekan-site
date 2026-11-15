@@ -90,6 +90,33 @@
   var photo = document.getElementById('photo');
   if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.style.display = 'none'; }
 
+  // Lien court (pubs TikTok, Facebook…) : ?product=… seul. On lit le nom, le prix et la photo dans Ferekan.
+  // Clé publique (anon) : lecture seule des produits visibles, protégée par les règles de la base.
+  var SB_URL = '__SUPABASE_URL__';
+  var SB_KEY = '__SUPABASE_ANON__';
+  function fill(t, priceText, shopText, photoUrl) {
+    if (t) { document.getElementById('title').textContent = t; document.title = t + ' · Ferekan'; }
+    if (priceText) document.getElementById('price').textContent = priceText;
+    if (shopText) document.getElementById('shop').textContent = shopText;
+    if (photoUrl && /^https:\/\//.test(photoUrl)) { photo.src = photoUrl; photo.alt = t || ''; photo.style.display = ''; }
+  }
+  if (/^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0 && (productId || serviceId) && !q.get('t')) {
+    var table = serviceId ? 'services' : 'products';
+    var cols = serviceId ? 'title,price_from_xof,photos,shops(name)' : 'title,price_xof,photos,shops(name)';
+    fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + (serviceId || productId) + '&select=' + cols, {
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+      var x = rows && rows[0];
+      if (!x) return;
+      var n = serviceId ? x.price_from_xof : x.price_xof;
+      var priceText = serviceId
+        ? (n != null ? 'À partir de ' + Number(n).toLocaleString('fr-FR') + ' FCFA' : 'Prix sur devis')
+        : Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
+      var shopName2 = x.shops && x.shops.name;
+      fill(x.title, priceText, shopName2 ? (serviceId ? 'Proposé par ' : 'Vendu par ') + shopName2 : '', x.photos && x.photos[0]);
+    }).catch(function () { /* on garde l'affichage simple */ });
+  }
+
   // Lien de boutique (sans produit) : textes adaptés
   if (!productId && !serviceId && shopId) {
     document.getElementById('shop').textContent = 'Boutique sur Ferekan';
@@ -99,7 +126,8 @@
   var path = serviceId ? 'service/' + serviceId : productId ? 'product/' + productId : (shopId ? 'shop/' + shopId : '');
   var deepLink = 'ferekan://' + path;
   // Version web de Ferekan (même produit), en adresse complète
-  var webLink = new URL('../app/' + path, location.href).href;
+  // « Discuter » ouvre directement la fenêtre de discussion (même sans compte) : ?chat=1
+  var webLink = new URL('../app/' + path + ((productId || serviceId) ? '?chat=1' : ''), location.href).href;
 
   var ua = navigator.userAgent;
   var isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
