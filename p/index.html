@@ -123,6 +123,30 @@ fbq('init','1648918213696790');fbq('track','PageView');
     }).catch(function () { /* on garde l'affichage simple */ });
   }
 
+  // Statut WhatsApp d'un diffuseur (?d=CODE) : la visite est comptée après 2,5 s sur la page, onglet visible.
+  // Le serveur vérifie tout (un appareil = une visite) ; ici on envoie seulement le code et un identifiant d'appareil.
+  var diffCode = (q.get('d') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  if (diffCode && /^https:\/\//.test(SB_URL)) {
+    var dev = '';
+    try { dev = localStorage.getItem('fk_dev') || ''; } catch (e) { /* navigation privée */ }
+    if (!dev) {
+      dev = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
+      try { localStorage.setItem('fk_dev', dev); } catch (e) { /* sans importance */ }
+    }
+    var sent = false;
+    var sendVisit = function () {
+      if (sent || document.visibilityState !== 'visible') return;
+      sent = true;
+      fetch(SB_URL + '/functions/v1/status-visit', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json', apikey: SB_KEY },
+        body: JSON.stringify({ code: diffCode, device: dev })
+      }).catch(function () { /* sans importance */ });
+    };
+    setTimeout(sendVisit, 2500);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(sendVisit, 2500); });
+  }
+
   // Lien de boutique (sans produit) : textes adaptés
   if (!productId && !serviceId && shopId) {
     document.getElementById('shop').textContent = 'Boutique sur Ferekan';
@@ -133,7 +157,9 @@ fbq('init','1648918213696790');fbq('track','PageView');
   var deepLink = 'ferekan://' + path;
   // Version web de Ferekan (même produit), en adresse complète
   // « Discuter » ouvre directement la fenêtre de discussion (même sans compte) : ?chat=1
-  var webLink = new URL('../app/' + path + ((productId || serviceId) ? '?chat=1' : ''), location.href).href;
+  var refCode = (q.get('d') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+  var webLink = new URL('../app/' + path + ((productId || serviceId) ? '?chat=1' : '') +
+    (refCode ? ((productId || serviceId) ? '&' : '?') + 'ref=' + refCode : ''), location.href).href;
 
   var ua = navigator.userAgent;
   var isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
