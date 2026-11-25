@@ -158,6 +158,9 @@ fbq('init','1648918213696790');fbq('track','PageView');
   // Lien court (pubs TikTok, Facebook…) : ?product=… seul. On lit le nom, le prix et la photo dans Ferekan.
   // Clé publique (anon) : lecture seule des produits visibles, protégée par les règles de la base.
   var SB_URL = '__SUPABASE_URL__';
+  // Si la publication n'a pas remplacé l'adresse, on utilise celle du projet (publique : elle figure dans chaque photo)
+  if (!/^https:\/\//.test(SB_URL)) SB_URL = 'https://reecydtldyhvonygfebc.supabase.co';
+  function SB_KEY_OK() { return typeof SB_KEY === 'string' && SB_KEY.length > 20 && SB_KEY.indexOf('__') !== 0; }
   var SB_KEY = '__SUPABASE_ANON__';
   // En-têtes de lecture publique. Les nouvelles clés « sb_publishable_… » ne sont pas des jetons :
   // elles vont seulement dans « apikey » (les mettre dans Authorization fait échouer la requête).
@@ -167,7 +170,7 @@ fbq('init','1648918213696790');fbq('track','PageView');
     if (!b) { b = document.createElement('pre'); b.id = 'dbg'; b.style.cssText = 'white-space:pre-wrap;font-size:12px;background:#14181F;color:#FDE7C8;padding:10px;margin:10px;border-radius:10px'; document.body.appendChild(b); }
     b.textContent += msg + '\n';
   } : null;
-  if (dbg) dbg('Version page : 2026-11-25c · ' + SB_URL.replace(/^https:\/\//, '') + ' · clé ' + SB_KEY.slice(0, 14) + '…');
+  if (dbg) dbg('Version page : 2026-11-25d · ' + SB_URL.replace(/^https:\/\//, '') + ' · clé ' + SB_KEY.slice(0, 14) + '…');
   function sbHeaders(extra) {
     var h = { apikey: SB_KEY };
     if (/^eyJ/.test(SB_KEY)) h.Authorization = 'Bearer ' + SB_KEY;
@@ -186,16 +189,16 @@ fbq('init','1648918213696790');fbq('track','PageView');
       if (!shown || list.indexOf(photo.getAttribute('src')) === -1) { photoQueue = list.slice(); nextPhoto(); }
     }
   }
-  if (/^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0 && (productId || serviceId)) {
-    var table = serviceId ? 'services' : 'products';
-    var cols = serviceId ? 'title,price_from_xof,photos,shops(name)' : 'title,price_xof,photos,shops(name)';
-    fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + (serviceId || productId) + '&select=' + cols, {
-      headers: sbHeaders()
-    }).then(function (r) {
-      if (dbg) return r.text().then(function (t) { dbg('HTTP ' + r.status + ' · ' + t.slice(0, 220)); try { return r.ok ? JSON.parse(t) : []; } catch (e) { return []; } });
-      return r.ok ? r.json() : [];
-    }).then(function (rows) {
-      var x = rows && rows[0];
+  // Infos à jour (nom, prix, photos) via la fonction publique « public-preview » : sans clé, sans compte
+  function preview(params) {
+    return fetch(SB_URL + '/functions/v1/public-preview?' + params).then(function (r) {
+      if (dbg) return r.text().then(function (t) { dbg('HTTP ' + r.status + ' · ' + t.slice(0, 200)); try { return JSON.parse(t); } catch (e) { return {}; } });
+      return r.ok ? r.json() : {};
+    });
+  }
+  if (productId || serviceId) {
+    preview(serviceId ? 'service=' + serviceId : 'product=' + productId).then(function (res) {
+      var x = res && res.item;
       if (!x) return;
       var n = serviceId ? x.price_from_xof : x.price_xof;
       var priceText = serviceId
@@ -204,12 +207,12 @@ fbq('init','1648918213696790');fbq('track','PageView');
       var shopName2 = x.shops && x.shops.name;
       fill(x.title, priceText, shopName2 ? (serviceId ? 'Proposé par ' : 'Vendu par ') + shopName2 : '', x.photos || []);
     }).catch(function (e) { if (dbg) dbg('Erreur réseau · ' + (e && e.message)); });
-  } else if (dbg) { dbg('Lecture non lancée (adresse ou clé absente)'); }
+  }
 
   // Statut WhatsApp d'un diffuseur (?d=CODE) : la visite est comptée après 2,5 s sur la page, onglet visible.
   // Le serveur vérifie tout (un appareil = une visite) ; ici on envoie seulement le code et un identifiant d'appareil.
   var diffCode = (q.get('d') || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  if (diffCode && /^https:\/\//.test(SB_URL)) {
+  if (diffCode) {
     var dev = '';
     try { dev = localStorage.getItem('fk_dev') || ''; } catch (e) { /* navigation privée */ }
     if (!dev) {
@@ -222,7 +225,7 @@ fbq('init','1648918213696790');fbq('track','PageView');
       sent = true;
       fetch(SB_URL + '/functions/v1/status-visit', {
         method: 'POST', keepalive: true,
-        headers: { 'Content-Type': 'application/json', apikey: SB_KEY },
+        headers: SB_KEY_OK() ? { 'Content-Type': 'application/json', apikey: SB_KEY } : { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: diffCode, device: dev })
       }).catch(function () { /* sans importance */ });
     };
@@ -308,12 +311,9 @@ fbq('init','1648918213696790');fbq('track','PageView');
       return r.json().then(function (rows) { return { rows: rows || [], total: isNaN(total) ? (rows || []).length : total }; });
     });
   }
-  if (!productId && !serviceId && shopId && /^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0) {
-    Promise.all([
-      sbGet('shops?id=eq.' + shopId + '&select=name,city,description,logo_url,verified'),
-      sbGet('products?shop_id=eq.' + shopId + '&active=eq.true&select=id,title,price_xof,photos&order=created_at.desc&limit=6', true),
-      sbGet('services?shop_id=eq.' + shopId + '&active=eq.true&select=id,title,price_from_xof,photos&order=created_at.desc&limit=3', true)
-    ]).then(function (res) {
+  if (!productId && !serviceId && shopId) {
+    preview('shop=' + shopId).then(function (r) {
+      var res = [{ rows: r && r.shop ? [r.shop] : [] }, r && r.products ? r.products : { rows: [], total: 0 }, r && r.services ? r.services : { rows: [], total: 0 }];
       var shop = res[0].rows[0];
       if (!shop) return; // boutique introuvable ou masquée : on garde la page simple
       var prods = res[1], svcs = res[2];
