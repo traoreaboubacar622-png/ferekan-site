@@ -24,6 +24,8 @@
   .shop { color:var(--muted); font-size:15px; }
   .actions { padding:18px; display:flex; flex-direction:column; gap:10px; margin-top:auto; }
   a.btn { display:flex; align-items:center; justify-content:center; height:54px; border-radius:14px; font-weight:700; font-size:16px; text-decoration:none; }
+  a.btn.buy { display:none; height:66px; font-size:21px; font-weight:800; background:var(--o); color:var(--ink); gap:10px; box-shadow:0 8px 20px rgba(242,163,58,.4); }
+  p.buynote { display:none; margin:-4px 0 2px; text-align:center; color:var(--muted); font-size:13px; }
   a.primary { background:var(--g); color:#fff; }
   a.secondary { border:1.5px solid var(--g); color:var(--g); }
   p.note { margin:0; text-align:center; color:var(--muted); font-size:13px; }
@@ -95,6 +97,8 @@ fbq('init','1648918213696790');fbq('track','PageView');
     <div class="trust">✓ Boutique contrôlée par Ferekan<br>🎙️ Discute avec le vendeur, même en vocal<br>📦 Livraison ou retrait en boutique</div>
   </div>
   <div class="actions">
+    <a class="btn buy" id="buy">🛒 Commander</a>
+    <p class="buynote" id="buynote">Pas besoin de compte · tu paies à la livraison</p>
     <a class="btn primary" id="open">Discuter avec le vendeur sur Ferekan</a>
     <a class="btn secondary" id="download">Télécharger l’application</a>
     <p class="note" id="webnote" style="display:none">ou <a id="weblink" style="color:var(--g);font-weight:700">continuer sur la version web</a>, sans rien installer</p>
@@ -206,6 +210,20 @@ fbq('init','1648918213696790');fbq('track','PageView');
   var open = document.getElementById('open');
   var dl = document.getElementById('download');
   dl.href = DOWNLOAD_URL;
+
+  // Produit : gros bouton « Commander » qui ouvre directement la commande express (sans compte)
+  if (productId) {
+    var buyWeb = new URL('../app/product/' + productId + '?commander=1' + (refCode ? '&ref=' + refCode : ''), location.href).href;
+    var buy = document.getElementById('buy');
+    buy.href = isAndroid
+      ? 'intent://product/' + productId + '?commander=1#Intent;scheme=ferekan;package=' + ANDROID_PACKAGE +
+        ';S.browser_fallback_url=' + encodeURIComponent(buyWeb) + ';end'
+      : buyWeb;
+    buy.style.display = 'flex';
+    document.getElementById('buynote').style.display = 'block';
+    document.getElementById('open').textContent = '💬 Poser une question au vendeur';
+    document.getElementById('open').className = 'btn secondary';
+  }
 
   if (isAndroid) {
     // Lien Android « intelligent » : ouvre l'app Ferekan si elle est installée
