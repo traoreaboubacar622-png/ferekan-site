@@ -18,6 +18,7 @@
   header svg { width:32px; height:32px; }
   header strong { font-size:20px; color:var(--g); }
   .photo { width:100%; aspect-ratio: 1/1; object-fit:cover; background:#FDE7C8; display:block; }
+  .photo.ph { min-height:220px; background:#FDE7C8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='1.5'%3E%3Cpath d='M6 7h12l-1 13H7L6 7z'/%3E%3Cpath d='M9 7a3 3 0 0 1 6 0'/%3E%3C/svg%3E") center/96px no-repeat; }
   .body { padding:20px 18px; display:flex; flex-direction:column; gap:8px; }
   h1 { margin:0; font-size:24px; }
   .price { font-size:24px; font-weight:800; color:var(--g); }
@@ -137,7 +138,10 @@ fbq('init','1648918213696790');fbq('track','PageView');
     if (shopName) document.getElementById('shop').textContent = 'Vendu par ' + shopName;
   }
   var photo = document.getElementById('photo');
-  if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.style.display = 'none'; }
+  // Photo introuvable (le vendeur l'a changée depuis la pub) : on ne laisse jamais un trou blanc.
+  // La photo à jour arrive juste après depuis Ferekan ; sinon un fond coloré avec une icône.
+  photo.onerror = function () { photo.removeAttribute('src'); photo.alt = ''; photo.classList.add('ph'); };
+  if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.classList.add('ph'); }
 
   // Lien court (pubs TikTok, Facebook…) : ?product=… seul. On lit le nom, le prix et la photo dans Ferekan.
   // Clé publique (anon) : lecture seule des produits visibles, protégée par les règles de la base.
@@ -147,9 +151,12 @@ fbq('init','1648918213696790');fbq('track','PageView');
     if (t) { document.getElementById('title').textContent = t; document.title = t + ' · Ferekan'; }
     if (priceText) document.getElementById('price').textContent = priceText;
     if (shopText) document.getElementById('shop').textContent = shopText;
-    if (photoUrl && /^https:\/\//.test(photoUrl)) { photo.src = photoUrl; photo.alt = t || ''; photo.style.display = ''; }
+    if (photoUrl && /^https:\/\//.test(photoUrl)) {
+      photo.classList.remove('ph'); photo.style.display = '';
+      photo.src = photoUrl; photo.alt = t || '';
+    }
   }
-  if (/^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0 && (productId || serviceId) && !q.get('t')) {
+  if (/^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0 && (productId || serviceId)) {
     var table = serviceId ? 'services' : 'products';
     var cols = serviceId ? 'title,price_from_xof,photos,shops(name)' : 'title,price_xof,photos,shops(name)';
     fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + (serviceId || productId) + '&select=' + cols, {
