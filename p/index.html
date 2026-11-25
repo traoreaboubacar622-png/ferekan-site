@@ -140,8 +140,20 @@ fbq('init','1648918213696790');fbq('track','PageView');
   var photo = document.getElementById('photo');
   // Photo introuvable (le vendeur l'a changée depuis la pub) : on ne laisse jamais un trou blanc.
   // La photo à jour arrive juste après depuis Ferekan ; sinon un fond coloré avec une icône.
-  photo.onerror = function () { photo.removeAttribute('src'); photo.alt = ''; photo.classList.add('ph'); };
-  if (/^https:\/\//.test(img)) { photo.src = img; photo.alt = title; } else { photo.classList.add('ph'); }
+  // Liste de photos à essayer dans l'ordre : celle du lien, puis celles à jour dans Ferekan.
+  // Une photo qui ne charge pas (supprimée, vidéo…) passe à la suivante ; sinon fond coloré.
+  var photoQueue = [];
+  var isImage = function (u) { return /^https:\/\//.test(u || '') && !/\.(mp4|mov|webm|m4v)(\?|$)/i.test(u); };
+  function nextPhoto() {
+    while (photoQueue.length) {
+      var u = photoQueue.shift();
+      if (isImage(u) && u !== photo.getAttribute('src')) { photo.classList.remove('ph'); photo.src = u; return; }
+    }
+    photo.removeAttribute('src'); photo.alt = ''; photo.classList.add('ph');
+  }
+  photo.onerror = nextPhoto;
+  photo.alt = title;
+  if (isImage(img)) { photo.src = img; } else { photo.classList.add('ph'); }
 
   // Lien court (pubs TikTok, Facebook…) : ?product=… seul. On lit le nom, le prix et la photo dans Ferekan.
   // Clé publique (anon) : lecture seule des produits visibles, protégée par les règles de la base.
@@ -151,9 +163,12 @@ fbq('init','1648918213696790');fbq('track','PageView');
     if (t) { document.getElementById('title').textContent = t; document.title = t + ' · Ferekan'; }
     if (priceText) document.getElementById('price').textContent = priceText;
     if (shopText) document.getElementById('shop').textContent = shopText;
-    if (photoUrl && /^https:\/\//.test(photoUrl)) {
-      photo.classList.remove('ph'); photo.style.display = '';
-      photo.src = photoUrl; photo.alt = t || '';
+    var list = (Array.isArray(photoUrl) ? photoUrl : [photoUrl]).filter(isImage);
+    if (list.length) {
+      photo.style.display = ''; photo.alt = t || photo.alt;
+      // Photo actuelle déjà affichée correctement : on la garde ; sinon on essaie les photos à jour
+      var shown = photo.complete && photo.naturalWidth > 0 && photo.getAttribute('src');
+      if (!shown || list.indexOf(photo.getAttribute('src')) === -1) { photoQueue = list.slice(); nextPhoto(); }
     }
   }
   if (/^https:\/\//.test(SB_URL) && SB_KEY.indexOf('__') !== 0 && (productId || serviceId)) {
@@ -169,7 +184,7 @@ fbq('init','1648918213696790');fbq('track','PageView');
         ? (n != null ? 'À partir de ' + Number(n).toLocaleString('fr-FR') + ' FCFA' : 'Prix sur devis')
         : Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
       var shopName2 = x.shops && x.shops.name;
-      fill(x.title, priceText, shopName2 ? (serviceId ? 'Proposé par ' : 'Vendu par ') + shopName2 : '', x.photos && x.photos[0]);
+      fill(x.title, priceText, shopName2 ? (serviceId ? 'Proposé par ' : 'Vendu par ') + shopName2 : '', x.photos || []);
     }).catch(function () { /* on garde l'affichage simple */ });
   }
 
