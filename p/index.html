@@ -161,6 +161,13 @@ fbq('init','1648918213696790');fbq('track','PageView');
   var SB_KEY = '__SUPABASE_ANON__';
   // En-têtes de lecture publique. Les nouvelles clés « sb_publishable_… » ne sont pas des jetons :
   // elles vont seulement dans « apikey » (les mettre dans Authorization fait échouer la requête).
+  // Diagnostic : ajouter &debug=1 au lien affiche ce que la page reçoit de Ferekan (rien de secret : clé publique)
+  var dbg = q.get('debug') ? function (msg) {
+    var b = document.getElementById('dbg');
+    if (!b) { b = document.createElement('pre'); b.id = 'dbg'; b.style.cssText = 'white-space:pre-wrap;font-size:12px;background:#14181F;color:#FDE7C8;padding:10px;margin:10px;border-radius:10px'; document.body.appendChild(b); }
+    b.textContent += msg + '\n';
+  } : null;
+  if (dbg) dbg('Version page : 2026-11-25c · ' + SB_URL.replace(/^https:\/\//, '') + ' · clé ' + SB_KEY.slice(0, 14) + '…');
   function sbHeaders(extra) {
     var h = { apikey: SB_KEY };
     if (/^eyJ/.test(SB_KEY)) h.Authorization = 'Bearer ' + SB_KEY;
@@ -184,7 +191,10 @@ fbq('init','1648918213696790');fbq('track','PageView');
     var cols = serviceId ? 'title,price_from_xof,photos,shops(name)' : 'title,price_xof,photos,shops(name)';
     fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + (serviceId || productId) + '&select=' + cols, {
       headers: sbHeaders()
-    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+    }).then(function (r) {
+      if (dbg) return r.text().then(function (t) { dbg('HTTP ' + r.status + ' · ' + t.slice(0, 220)); try { return r.ok ? JSON.parse(t) : []; } catch (e) { return []; } });
+      return r.ok ? r.json() : [];
+    }).then(function (rows) {
       var x = rows && rows[0];
       if (!x) return;
       var n = serviceId ? x.price_from_xof : x.price_xof;
@@ -193,8 +203,8 @@ fbq('init','1648918213696790');fbq('track','PageView');
         : Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
       var shopName2 = x.shops && x.shops.name;
       fill(x.title, priceText, shopName2 ? (serviceId ? 'Proposé par ' : 'Vendu par ') + shopName2 : '', x.photos || []);
-    }).catch(function () { /* on garde l'affichage simple */ });
-  }
+    }).catch(function (e) { if (dbg) dbg('Erreur réseau · ' + (e && e.message)); });
+  } else if (dbg) { dbg('Lecture non lancée (adresse ou clé absente)'); }
 
   // Statut WhatsApp d'un diffuseur (?d=CODE) : la visite est comptée après 2,5 s sur la page, onglet visible.
   // Le serveur vérifie tout (un appareil = une visite) ; ici on envoie seulement le code et un identifiant d'appareil.
