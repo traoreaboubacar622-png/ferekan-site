@@ -159,6 +159,14 @@ fbq('init','1648918213696790');fbq('track','PageView');
   // Clé publique (anon) : lecture seule des produits visibles, protégée par les règles de la base.
   var SB_URL = '__SUPABASE_URL__';
   var SB_KEY = '__SUPABASE_ANON__';
+  // En-têtes de lecture publique. Les nouvelles clés « sb_publishable_… » ne sont pas des jetons :
+  // elles vont seulement dans « apikey » (les mettre dans Authorization fait échouer la requête).
+  function sbHeaders(extra) {
+    var h = { apikey: SB_KEY };
+    if (/^eyJ/.test(SB_KEY)) h.Authorization = 'Bearer ' + SB_KEY;
+    if (extra) for (var k in extra) h[k] = extra[k];
+    return h;
+  }
   function fill(t, priceText, shopText, photoUrl) {
     if (t) { document.getElementById('title').textContent = t; document.title = t + ' · Ferekan'; }
     if (priceText) document.getElementById('price').textContent = priceText;
@@ -175,7 +183,7 @@ fbq('init','1648918213696790');fbq('track','PageView');
     var table = serviceId ? 'services' : 'products';
     var cols = serviceId ? 'title,price_from_xof,photos,shops(name)' : 'title,price_xof,photos,shops(name)';
     fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + (serviceId || productId) + '&select=' + cols, {
-      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+      headers: sbHeaders()
     }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
       var x = rows && rows[0];
       if (!x) return;
@@ -282,8 +290,7 @@ fbq('init','1648918213696790');fbq('track','PageView');
   }
   function fcfa(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
   function sbGet(query, withCount) {
-    var h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };
-    if (withCount) { h.Prefer = 'count=exact'; }
+    var h = sbHeaders(withCount ? { Prefer: 'count=exact' } : null);
     return fetch(SB_URL + '/rest/v1/' + query, { headers: h }).then(function (r) {
       if (!r.ok) return { rows: [], total: 0 };
       var range = r.headers.get('content-range') || '';
